@@ -33,6 +33,7 @@ public class OrderService {
                         String threadNumber = matcher.group(1);
 
                         if ("2".equals(threadNumber)) {
+                            System.out.println("...Thread-2 REJECTED...");
                             throw new RuntimeException("Thread-2 çalışırken hata oluştu!");
                         }
                     }
@@ -41,6 +42,7 @@ public class OrderService {
                         Order order = new Order();
                         order.setDescription("Order from " + threadName + " - Record " + j);
                         orderRepository.save(order);
+                        System.out.println(order.getDescription());
                     }
                 });
             }
