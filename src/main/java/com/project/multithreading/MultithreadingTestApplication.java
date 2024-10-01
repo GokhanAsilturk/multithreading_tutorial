@@ -8,8 +8,8 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan("com.project.multithreading")
 public class MultithreadingTestApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(MultithreadingTestApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(MultithreadingTestApplication.class, args);
+    }
 
 }

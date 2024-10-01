@@ -25,7 +25,7 @@ public class OrderService {
                 executorService.submit(() -> {
                     String threadName = Thread.currentThread().getName();
 
-                    if ("thread-2".equals(threadName)) {
+                    if ("pool-3-thread-2".equals(threadName)) {
                         throw new RuntimeException("Thread-2 çalışırken hata oluştu!");
                     }
 
@@ -47,11 +47,11 @@ public class OrderService {
         }
     }
 
-    public List<Order> getAll(){
+    public List<Order> getAll() {
         return orderRepository.findAll();
     }
 
-    public void deleteAll(){
+    public void deleteAll() {
         orderRepository.deleteAll();
     }
 }
