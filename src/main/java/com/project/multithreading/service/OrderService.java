@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class OrderService {
@@ -24,15 +26,20 @@ public class OrderService {
             for (int i = 0; i < 10; i++) {
                 executorService.submit(() -> {
                     String threadName = Thread.currentThread().getName();
+                    Pattern pattern = Pattern.compile("pool-\\d+-thread-(\\d+)");
+                    Matcher matcher = pattern.matcher(threadName);
 
-                    if ("pool-3-thread-2".equals(threadName)) {
-                        throw new RuntimeException("Thread-2 çalışırken hata oluştu!");
+                    if (matcher.find()) {
+                        String threadNumber = matcher.group(1);
+
+                        if ("2".equals(threadNumber)) {
+                            throw new RuntimeException("Thread-2 çalışırken hata oluştu!");
+                        }
                     }
 
                     for (int j = 0; j < 10; j++) {
-                        Order order = Order.builder()
-                                .description("Order from " + threadName + " - Record " + j)
-                                .build();
+                        Order order = new Order();
+                        order.setDescription("Order from " + threadName + " - Record " + j);
                         orderRepository.save(order);
                     }
                 });
