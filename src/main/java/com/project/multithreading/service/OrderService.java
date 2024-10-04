@@ -31,7 +31,6 @@ public class OrderService {
                 futures.add(executorService.submit(() -> {
                     String threadName = Thread.currentThread().getName();
                     try {
-                        // Thread-2 bir hata atıyor
                         if (threadName.endsWith("thread-2")) {
                             System.out.println("...Thread-2 REJECTED...");
                             throw new RuntimeException("Thread-2 çalışırken hata oluştu!"); // Hata simülasyonu
@@ -44,10 +43,10 @@ public class OrderService {
                             orderRepository.save(order);
                             System.out.println(order.getDescription());
                         }
-                        return true; // Başarılıysa true döndür
+                        return true;
                     } catch (Exception e) {
                         System.out.println("Hata oluştu: " + e.getMessage());
-                        return false; // Hata varsa false döndür
+                        return false;
                     }
                 }));
             }
