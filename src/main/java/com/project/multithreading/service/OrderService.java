@@ -23,7 +23,6 @@ public class OrderService {
     }
 
     public void createOrdersConcurrently() {
-        // ExecutorService ile 10 iş parçacığı oluşturuyoruz
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         List<Future<Boolean>> futures = new ArrayList<>();
         List<Integer> idList = new ArrayList<>();
@@ -37,10 +36,10 @@ public class OrderService {
                     try {
                         if (threadName.endsWith("thread-2")) {
                             System.out.println("...Thread-2 REJECTED...");
-                            throw new RuntimeException("Thread-2 çalışırken hata oluştu!"); // Hata simülasyonu
+                            throw new RuntimeException("Thread-2 çalışırken hata oluştu!");
                         }
 
-                        // Siparişleri oluşturuyoruz
+                        //Siparişler
                         for (int j = 0; j < 10; j++) {
                             Order order = new Order();
                             order.setDescription("Order from " + threadName + " - Record " + j);
@@ -61,9 +60,8 @@ public class OrderService {
                 }
             }
 
-            // Tüm iş parçacıklarının tamamlanmasını bekliyoruz
             executorService.shutdown();
-            executorService.awaitTermination(10, TimeUnit.SECONDS)
+            executorService.awaitTermination(10, TimeUnit.SECONDS);
 
 
         } catch (Exception e) {
