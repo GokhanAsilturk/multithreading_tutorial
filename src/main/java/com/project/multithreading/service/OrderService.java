@@ -4,7 +4,6 @@ import com.project.multithreading.repository.Order;
 import com.project.multithreading.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,15 +18,20 @@ public class OrderService {
     @Autowired
     private OrderRepository orderRepository;
 
-    // İşlemleri toplu bir transaction içinde çalıştırıyoruz.
-    @Transactional
+    private void customRollback(List<Integer> idList) {
+        idList.forEach(this::deleteById);
+    }
+
     public void createOrdersConcurrently() {
         // ExecutorService ile 10 iş parçacığı oluşturuyoruz
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         List<Future<Boolean>> futures = new ArrayList<>();
+        List<Integer> idList = new ArrayList<>();
 
         try {
+
             for (int i = 0; i < 10; i++) {
+
                 futures.add(executorService.submit(() -> {
                     String threadName = Thread.currentThread().getName();
                     try {
@@ -41,6 +45,7 @@ public class OrderService {
                             Order order = new Order();
                             order.setDescription("Order from " + threadName + " - Record " + j);
                             orderRepository.save(order);
+                            idList.add(order.getId());
                             System.out.println(order.getDescription());
                         }
                         return true;
@@ -49,22 +54,21 @@ public class OrderService {
                         return false;
                     }
                 }));
+                for (Future<Boolean> future : futures) {
+                    if (!future.get()) {
+                        throw new RuntimeException();
+                    }
+                }
             }
 
             // Tüm iş parçacıklarının tamamlanmasını bekliyoruz
             executorService.shutdown();
-            executorService.awaitTermination(10, TimeUnit.SECONDS);
+            executorService.awaitTermination(10, TimeUnit.SECONDS)
 
-            // Herhangi bir iş parçacığında hata olup olmadığını kontrol ediyoruz
-            for (Future<Boolean> future : futures) {
-                if (!future.get()) {
-                    throw new RuntimeException("Bir iş parçacığında hata meydana geldi, rollback yapılıyor.");
-                }
-            }
 
         } catch (Exception e) {
-            System.out.println("Hata tespit edildi: " + e.getMessage());
-            throw new RuntimeException("Tüm işlemler rollback yapılacak!"); // Hata varsa ana thread rollback tetikler
+            customRollback(idList);
+            throw new RuntimeException("Tüm işlemler rollback yapılacak!");
         } finally {
             if (!executorService.isShutdown()) {
                 executorService.shutdownNow();
@@ -78,5 +82,9 @@ public class OrderService {
 
     public void deleteAll() {
         orderRepository.deleteAll();
+    }
+
+    public void deleteById(Integer id) {
+        orderRepository.deleteById(id);
     }
 }
