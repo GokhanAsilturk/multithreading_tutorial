@@ -7,10 +7,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class OrderService {
@@ -23,56 +19,58 @@ public class OrderService {
     }
 
     public void createOrdersConcurrently() {
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
-        List<Future<Boolean>> futures = new ArrayList<>();
+        List<Thread> threads = new ArrayList<>();
         List<Integer> idList = new ArrayList<>();
 
         try {
 
             for (int i = 0; i < 10; i++) {
+                String threadName = "Thread-" + (i + 1);
 
-                futures.add(executorService.submit(() -> {
-                    String threadName = Thread.currentThread().getName();
+                Thread thread = new Thread(() -> {
                     try {
-                        if (threadName.endsWith("thread-2")) {
+                        if (Thread.currentThread().getName().equals("Thread-2")) {
                             System.out.println("...Thread-2 REJECTED...");
                             throw new RuntimeException("Thread-2 çalışırken hata oluştu!");
                         }
 
-                        //Siparişler
+                        if (Thread.currentThread().getName().equals("Thread-3")) {
+                            System.out.println("Thread-3 is sleeping for 5 seconds...");
+                            Thread.sleep(5000);
+                        }
+
+                        // Siparişler
                         for (int j = 0; j < 10; j++) {
                             Order order = new Order();
-                            order.setDescription("Order from " + threadName + " - Record " + j);
+                            order.setDescription("Order from " + Thread.currentThread().getName() + " - Record " + j);
                             orderRepository.save(order);
                             idList.add(order.getId());
                             System.out.println(order.getDescription());
                         }
-                        return true;
                     } catch (Exception e) {
                         System.out.println("Hata oluştu: " + e.getMessage());
-                        return false;
+                        throw new RuntimeException(e);
                     }
-                }));
-                for (Future<Boolean> future : futures) {
-                    if (!future.get()) {
-                        throw new RuntimeException();
-                    }
-                }
+                });
+
+
+                thread.setName(threadName);
+                threads.add(thread);
+                thread.start();
             }
 
-            executorService.shutdown();
-            executorService.awaitTermination(10, TimeUnit.SECONDS);
 
+            for (Thread thread : threads) {
+                thread.join();
+            }
 
         } catch (Exception e) {
             customRollback(idList);
-            throw new RuntimeException("Tüm işlemler rollback yapılacak!");
-        } finally {
-            if (!executorService.isShutdown()) {
-                executorService.shutdownNow();
-            }
+            throw new RuntimeException("Tüm işlemler rollback yapılacak!", e);
         }
     }
+
+
 
     public List<Order> getAll() {
         return orderRepository.findAll();
