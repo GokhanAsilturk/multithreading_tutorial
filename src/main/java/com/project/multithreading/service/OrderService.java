@@ -7,24 +7,31 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class OrderService {
 
     @Autowired
-    private OrderRepository orderRepository;
+    private OrderRepository repository;
 
     private void customRollback(List<Integer> idList) {
-        idList.forEach(this::deleteById);
+        //idList.forEach(this::deleteById);
+
+        deleteAll(idList.stream().map(this::getById).toList());
     }
 
     public void createOrdersConcurrently() {
         List<Thread> threads = new ArrayList<>();
         List<Integer> idList = new ArrayList<>();
+        int threadCount = 10;
+        int taskCount = 10;
+        AtomicInteger finishedThreadCount = new AtomicInteger();
+        AtomicInteger successThreadCount = new AtomicInteger();
 
         try {
 
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < threadCount; i++) {
                 String threadName = "Thread-" + (i + 1);
 
                 Thread thread = new Thread(() -> {
@@ -40,16 +47,20 @@ public class OrderService {
                         }
 
                         // Siparişler
-                        for (int j = 0; j < 10; j++) {
+                        for (int j = 0; j < taskCount; j++) {
                             Order order = new Order();
                             order.setDescription("Order from " + Thread.currentThread().getName() + " - Record " + j);
-                            orderRepository.save(order);
+                            repository.save(order);
                             idList.add(order.getId());
                             System.out.println(order.getDescription());
                         }
+                        successThreadCount.getAndAdd(1);
+
                     } catch (Exception e) {
                         System.out.println("Hata oluştu: " + e.getMessage());
                         throw new RuntimeException(e);
+                    } finally {
+                        finishedThreadCount.getAndAdd(1);
                     }
                 });
 
@@ -65,22 +76,37 @@ public class OrderService {
             }
 
         } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("Finished Thread: " + finishedThreadCount.get() +
+                "\nSuccess Thread: " + successThreadCount.get() + "/" + threadCount +
+                "\nSuccess task count: " + idList.size() + "/" + taskCount * threadCount);
+
+        if ((successThreadCount.get() != threadCount) & (finishedThreadCount.get() == threadCount)) {
+            System.out.println("Rolling back...");
             customRollback(idList);
-            throw new RuntimeException("Tüm işlemler rollback yapılacak!", e);
         }
     }
 
 
-
     public List<Order> getAll() {
-        return orderRepository.findAll();
+        return repository.findAll();
     }
 
     public void deleteAll() {
-        orderRepository.deleteAll();
+        repository.deleteAll();
     }
 
-    public void deleteById(Integer id) {
-        orderRepository.deleteById(id);
+    public void deleteAll(List<Order> orders) {
+        repository.deleteAll(orders);
+    }
+
+    public void deleteById(int id) {
+        repository.deleteById(id);
+    }
+
+    public Order getById(int id) {
+        return repository.findById(id).orElseThrow(() -> new RuntimeException("Sipariş bulunamadı"));
     }
 }

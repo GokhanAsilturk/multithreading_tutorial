@@ -46,4 +46,15 @@ public class OrderController {
                     .body("Hata oluştu: " + e.getMessage());
         }
     }
+
+    @DeleteMapping("/deleteById")
+    public ResponseEntity<String> deleteById(@RequestParam("id") int id) {
+        try {
+            orderService.deleteById(id);
+            return ResponseEntity.ok("Sipariş silindi: " + id);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Hata oluştu: " + e.getMessage());
+        }
+    }
 }
