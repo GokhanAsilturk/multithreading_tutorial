@@ -16,8 +16,6 @@ public class OrderService {
     private OrderRepository repository;
 
     private void customRollback(List<Integer> idList) {
-        //idList.forEach(this::deleteById);
-
         deleteAll(idList.stream().map(this::getById).toList());
     }
 
